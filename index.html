@@ -3,100 +3,137 @@
 <head>
   <meta charset="UTF-8">
   <title>Matrix Chat</title>
+
+  <!-- Підключення бібліотек -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/alpinejs" defer></script>
+  <script src="./login/login.js"></script>
+  <script src="./sidebar/sidebar.js"></script>
+
+  <!-- Стилі -->
+  <style>
+    .chat-container {
+      min-height: 80vh;
+    }
+    .sidebar {
+      min-width: 250px;
+      border-right: 1px solid #e5e7eb;
+    }
+    .chat-area {
+      flex-grow: 1;
+    }
+    .room-list li {
+      padding: 8px;
+      border-radius: 8px;
+      transition: background-color 0.2s;
+    }
+    .room-list li:hover {
+      background-color: #e0e7ff;
+    }
+    .room-list li.active {
+      background-color: #bfdbfe;
+      font-weight: 500;
+    }
+  </style>
 </head>
-<body class="bg-gray-100 flex items-center justify-center h-screen">
-  <div x-data="chatApp()" 
-       :class="{'w-96 h-[600px]': accessToken, 'w-96 h-96': !accessToken}"
-       class="bg-white p-6 rounded shadow-md transition-all duration-500">
 
-    <!-- Форма логіну -->
-    <template x-if="!accessToken">
-      <div>
-        <h2 class="text-xl font-bold mb-4">Логін</h2>
-        <input x-model="username" placeholder="Username"
-               class="border p-2 w-full mb-2 rounded" />
-        <input x-model="password" type="password" placeholder="Password"
-               class="border p-2 w-full mb-2 rounded" />
-        <button @click="login()" class="bg-blue-500 text-white p-2 w-full rounded hover:bg-blue-600 transition">
-          Увійти
-        </button>
-        <p x-text="error" class="text-red-500 mt-2"></p>
+<body class="bg-gray-100 flex items-center justify-center p-4">
+  <div x-data="chatApp()" class="chat-container bg-white rounded-lg shadow-lg flex w-full max-w-5xl">
+    
+    <!-- Контейнер для сайдбару -->
+    <div id="sidebar-container"></div>
+
+    <!-- Контейнер для основної області чату -->
+    <div class="chat-area p-4 flex flex-col w-full">
+      
+      <!-- Контейнер для форми логіну -->
+      <div id="login-container" x-show="!accessToken"></div>
+
+      <!-- Місце для майбутніх повідомлень -->
+      <div x-show="accessToken" class="flex-1 flex flex-col justify-center items-center text-gray-500">
+        <p>Оберіть кімнату для початку спілкування</p>
       </div>
-    </template>
 
-    <!-- Панель після авторизації -->
-    <template x-if="accessToken">
-      <div>
-        <h1 class="text-green-600 text-xl font-bold text-center mb-2">
-          Ви успішно авторизувались
-        </h1>
-        <p class="text-gray-700 text-center mb-4">User ID: <span x-text="userId"></span></p>
-        
-        <!-- Резюме користувача -->
-        <div class="bg-gray-50 p-4 rounded shadow mb-4">
-          <h3 class="text-lg font-semibold mb-2">Марія Борознюк</h3>
-          <p><strong>Професія:</strong> Курсант</p>
-          <p><strong>Навички:</strong> HTML, CSS,  JavaScript</p>
-          <p><strong>Досвід:</strong> Робота над навчальними проєктами</p>
-          <p><strong>Контакти:</strong> email@example.com</p>
-        </div>
-
-        <button @click="logout()" class="bg-gray-400 text-white p-2 w-full rounded hover:bg-gray-500 transition">
-          Вийти
-        </button>
-      </div>
-    </template>
+    </div>
   </div>
 
+  <!-- Завантаження HTML-шаблонів після завантаження DOM -->
+  <script>
+    // Функція для завантаження sidebar.html
+    async function loadSidebar() {
+      const response = await fetch('./sidebar/sidebar.html');
+      const html = await response.text();
+      const container = document.getElementById('sidebar-container');
+      container.innerHTML = html;
+      Alpine.initTree(container);
+    }
+
+    // Завантаження компонентів login і sidebar після завантаження DOM
+    document.addEventListener('DOMContentLoaded', async () => {
+      try {
+        // Завантаження login.html
+        const loginHtml = await fetch('./login/login.html').then(res => res.text());
+        const loginContainer = document.getElementById('login-container');
+        loginContainer.innerHTML = loginHtml;
+        Alpine.initTree(loginContainer);
+
+        // Завантаження sidebar.html
+        await loadSidebar();
+
+      } catch (err) {
+        console.error('Помилка завантаження компонентів:', err);
+      }
+    });
+  </script>
+
+  <!-- Головний об’єкт застосунку -->
   <script>
     function chatApp() {
       return {
-        username: 'mariaiiaia34', // твій Matrix акаунт
+        username: '',
         password: '',
         accessToken: '',
         userId: '',
-        error: '',
+        roomId: '',
+        newRoomName: '',
+        newRoomId: '',
+        inviteUser: '',
+        rooms: [],
+        messages: [],
+        lastSyncToken: '',
 
-        async login() {
-          try {
-            let user = this.username.replace('@', '').replace(':matrix.org', '');
-
-            const res = await fetch('https://matrix.org/_matrix/client/v3/login', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                type: 'm.login.password',
-                user: user,
-                password: this.password
-              })
-            });
-
-            const data = await res.json();
-
-            if (data.access_token) {
-              this.accessToken = data.access_token;
-              this.userId = data.user_id;
-              this.error = '';
-            } else {
-              this.error = 'Невірний логін або пароль'; // 🔹 локалізація
-              console.error(data);
-            }
-          } catch (e) {
-            this.error = 'Помилка під час входу';
-            console.error(e);
-          }
+        get sortedRooms() {
+          return this.rooms.sort((a, b) => a.name.localeCompare(b.name));
         },
 
-        logout() {
-          this.accessToken = '';
-          this.username = 'mariaiiaia34'
-          this.password = '';
-          this.userId = '';
-          this.error = '';
+        switchRoom(id) {
+          this.roomId = id;
+          console.log('Активна кімната:', id);
+          this.fetchMessages();
+        },
+
+        getRoomName(roomId) {
+          const room = this.rooms.find(r => r.roomId === roomId);
+          return room ? room.name : roomId;
+        },
+
+        async login() {
+          await login.call(this);
+          await this.fetchRoomsWithNames();
+        },
+
+        async createRoom() {
+          await createRoom.call(this);
+        },
+
+        async fetchRoomsWithNames() {
+          await fetchRoomsWithNames.call(this);
+        },
+
+        async fetchMessages() {
+          console.log(`Завантаження повідомлень для кімнати ${this.roomId}...`);
         }
-      }
+      };
     }
   </script>
 </body>
