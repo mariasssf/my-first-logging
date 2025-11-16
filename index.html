@@ -4,137 +4,104 @@
   <meta charset="UTF-8">
   <title>Matrix Chat</title>
 
-  <!-- Підключення бібліотек -->
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/alpinejs" defer></script>
+
+  <!-- Підключення JS-файлів ДО виклику chatApp() -->
   <script src="./login/login.js"></script>
   <script src="./sidebar/sidebar.js"></script>
+  <script src="./chat/chat.js"></script>
 
-  <!-- Стилі -->
   <style>
-    .chat-container {
-      min-height: 80vh;
-    }
-    .sidebar {
-      min-width: 250px;
-      border-right: 1px solid #e5e7eb;
-    }
-    .chat-area {
-      flex-grow: 1;
-    }
-    .room-list li {
-      padding: 8px;
-      border-radius: 8px;
-      transition: background-color 0.2s;
-    }
-    .room-list li:hover {
-      background-color: #e0e7ff;
-    }
-    .room-list li.active {
-      background-color: #bfdbfe;
-      font-weight: 500;
-    }
+    .chat-container { min-height: 80vh; }
+    .sidebar { min-width: 250px; border-right: 1px solid #e5e7eb; }
   </style>
 </head>
 
 <body class="bg-gray-100 flex items-center justify-center p-4">
-  <div x-data="chatApp()" class="chat-container bg-white rounded-lg shadow-lg flex w-full max-w-5xl">
-    
-    <!-- Контейнер для сайдбару -->
-    <div id="sidebar-container"></div>
 
-    <!-- Контейнер для основної області чату -->
-    <div class="chat-area p-4 flex flex-col w-full">
-      
-      <!-- Контейнер для форми логіну -->
-      <div id="login-container" x-show="!accessToken"></div>
+<div x-data="chatApp()" class="chat-container bg-white rounded-lg shadow-lg flex w-full max-w-5xl">
 
-      <!-- Місце для майбутніх повідомлень -->
-      <div x-show="accessToken" class="flex-1 flex flex-col justify-center items-center text-gray-500">
-        <p>Оберіть кімнату для початку спілкування</p>
-      </div>
+  <!-- Сайдбар -->
+  <div id="sidebar-container"></div>
 
+  <!-- Основна зона -->
+  <div class="chat-area p-4 flex flex-col w-full">
+
+    <!-- Логін -->
+    <div id="login-container" x-show="!accessToken"></div>
+
+    <!-- Чат -->
+    <div id="chat-container" x-show="accessToken"></div>
+
+    <div x-show="accessToken" class="flex-1 flex flex-col justify-center items-center text-gray-500">
+      <p>Оберіть кімнату для початку спілкування</p>
     </div>
+
   </div>
+</div>
 
-  <!-- Завантаження HTML-шаблонів після завантаження DOM -->
-  <script>
-    // Функція для завантаження sidebar.html
-    async function loadSidebar() {
-      const response = await fetch('./sidebar/sidebar.html');
-      const html = await response.text();
-      const container = document.getElementById('sidebar-container');
-      container.innerHTML = html;
-      Alpine.initTree(container);
-    }
 
-    // Завантаження компонентів login і sidebar після завантаження DOM
-    document.addEventListener('DOMContentLoaded', async () => {
-      try {
-        // Завантаження login.html
-        const loginHtml = await fetch('./login/login.html').then(res => res.text());
-        const loginContainer = document.getElementById('login-container');
-        loginContainer.innerHTML = loginHtml;
-        Alpine.initTree(loginContainer);
+<script>
+document.addEventListener("DOMContentLoaded", () => {
 
-        // Завантаження sidebar.html
-        await loadSidebar();
+  // login.html
+  fetch('./login/login.html')
+    .then(r => r.text())
+    .then(html => {
+      document.getElementById("login-container").innerHTML = html;
+    })
+    .catch(e => console.error("Error loading login:", e));
 
-      } catch (err) {
-        console.error('Помилка завантаження компонентів:', err);
-      }
-    });
-  </script>
+  // sidebar.html
+  fetch('./sidebar/sidebar.html')
+    .then(r => r.text())
+    .then(html => {
+      document.getElementById("sidebar-container").innerHTML = html;
+      Alpine.initTree(document.getElementById("sidebar-container"));
+    })
+    .catch(e => console.error("Error loading sidebar:", e));
 
-  <!-- Головний об’єкт застосунку -->
-  <script>
-    function chatApp() {
-      return {
-        username: '',
-        password: '',
-        accessToken: '',
-        userId: '',
-        roomId: '',
-        newRoomName: '',
-        newRoomId: '',
-        inviteUser: '',
-        rooms: [],
-        messages: [],
-        lastSyncToken: '',
+  // chat.html
+  fetch('./chat/chat.html')
+    .then(r => r.text())
+    .then(html => {
+      document.getElementById("chat-container").innerHTML = html;
+      Alpine.initTree(document.getElementById("chat-container"));
+    })
+    .catch(e => console.error("Error loading chat:", e));
 
-        get sortedRooms() {
-          return this.rooms.sort((a, b) => a.name.localeCompare(b.name));
-        },
+});
+</script>
 
-        switchRoom(id) {
-          this.roomId = id;
-          console.log('Активна кімната:', id);
-          this.fetchMessages();
-        },
 
-        getRoomName(roomId) {
-          const room = this.rooms.find(r => r.roomId === roomId);
-          return room ? room.name : roomId;
-        },
+<script>
+function chatApp() {
+  return {
+    username: '',
+    password: '',
+    accessToken: '',
+    userId: '',
+    roomId: '',
+    newRoomName: '',
+    inviteUser: '',
+    rooms: [],
+    messages: [],
+    lastSyncToken: '',
 
-        async login() {
-          await login.call(this);
-          await this.fetchRoomsWithNames();
-        },
+    // Методи з твоїх JS-файлів
+    login,
+    createRoom,
+    fetchRoomsWithNames,
+    fetchMessages,
+    inviteUserToRoom,
+    switchRoom,
+    sendMessage,
+    getRoomName,
+    joinRoom,
+  };
+}
+</script>
 
-        async createRoom() {
-          await createRoom.call(this);
-        },
-
-        async fetchRoomsWithNames() {
-          await fetchRoomsWithNames.call(this);
-        },
-
-        async fetchMessages() {
-          console.log(`Завантаження повідомлень для кімнати ${this.roomId}...`);
-        }
-      };
-    }
-  </script>
 </body>
 </html>
