@@ -1,46 +1,46 @@
 <template x-if="accessToken">
-  <div class="flex flex-col h-full">
+  <div class="chat-interface">
     <!-- User ID та Room ID -->
-    <div class="mb-2 p-2 bg-gray-200 rounded text-sm break-words flex justify-between">
-      <div>
-        <span class="font-bold">Your Matrix ID:</span>
+    <div class="chat-header">
+      <div class="user-info">
+        <span class="label">Your Matrix ID:</span>
         <span x-text="userId ? userId : 'Loading...'"></span>
       </div>
-      <div class="text-right">
-        <span class="font-bold">Room ID:</span>
-        <span x-text="roomId || 'Not selected'" class="ml-1 bg-gray-100 p-1 rounded cursor-pointer hover:bg-gray-300" @click="$clipboard(roomId)"></span>
-        <span class="text-xs text-gray-500 ml-1">(Click to copy)</span>
+      <div class="room-info">
+        <span class="label">Room ID:</span>
+        <span x-text="roomId || 'Not selected'" class="room-id" @click="$clipboard(roomId)"></span>
+        <span class="copy-hint">(Click to copy)</span>
       </div>
     </div>
-
+    
     <!-- Список повідомлень -->
-    <div id="messages" class="flex-1 overflow-y-auto mb-4 p-2 bg-gray-50 rounded border border-gray-200 h-[500px]">
+    <div class="messages-container">
       <template x-if="messages.length === 0">
-        <p class="text-gray-500 text-center">No messages yet. Start the conversation!</p>
+        <p class="no-messages">No messages yet. Start the conversation!</p>
       </template>
       <template x-for="msg in messages" :key="msg.id">
-        <div class="mb-2">
+        <div class="message">
           <strong x-text="msg.sender === userId ? 'You' : msg.sender.split(':')[0].substring(1) + ':'"></strong>
-          <span x-text="msg.body" class="ml-2"></span>
+          <span x-text="msg.body" class="message-body"></span>
         </div>
       </template>
     </div>
-
+    
     <!-- Поле для введення повідомлення -->
-    <div class="mb-4">
-      <textarea x-model="newMessage" placeholder="Type your message here..." class="message-input border p-2 w-full mb-2 rounded resize-y focus:outline-none focus:ring-2 focus:ring-blue-500"></textarea>
-      <button @click="sendMessage()" class="bg-green-500 text-white p-2 w-full rounded hover:bg-green-600 transition">Send</button>
+    <div class="message-input-section">
+      <textarea x-model="newMessage" placeholder="Type your message here..." class="message-input"></textarea>
+      <button @click="sendMessage()" class="send-button">Send Message</button>
     </div>
-
+    
     <!-- Запрошення та приєднання -->
-    <div class="space-y-2">
-      <div>
-        <input x-model="inviteUser" placeholder="Invite user (e.g., @user:matrix.org)" class="border p-2 w-full mb-1 rounded">
-        <button @click="inviteUserToRoom()" class="bg-purple-500 text-white p-2 w-full rounded hover:bg-purple-600 transition">Invite</button>
+    <div class="room-actions">
+      <div class="invite-section">
+        <input x-model="inviteUser" placeholder="Invite user (e.g., @user:matrix.org)" class="action-input">
+        <button @click="inviteUserToRoom()" class="action-button invite">Invite User</button>
       </div>
-      <div>
-        <input x-model="joinRoomId" placeholder="Room ID to join (e.g., !roomId:matrix.org)" class="border p-2 w-full mb-1 rounded">
-        <button @click="joinRoom()" class="bg-yellow-500 text-white p-2 w-full rounded hover:bg-yellow-600 transition">Join Room</button>
+      <div class="join-section">
+        <input x-model="joinRoomId" placeholder="Room ID to join (e.g., !roomId:matrix.org)" class="action-input">
+        <button @click="joinRoom()" class="action-button join">Join Room</button>
       </div>
     </div>
   </div>

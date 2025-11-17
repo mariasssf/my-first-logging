@@ -1,107 +1,98 @@
 <!DOCTYPE html>
-<html lang="uk">
+<html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Matrix Chat</title>
-
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://unpkg.com/alpinejs" defer></script>
-
-  <!-- Підключення JS-файлів ДО виклику chatApp() -->
   <script src="./login/login.js"></script>
   <script src="./sidebar/sidebar.js"></script>
   <script src="./chat/chat.js"></script>
-
+  <link rel="stylesheet" href="./sidebar/sidebar.css">
+  <link rel="stylesheet" href="./login/login.css">
+  <link rel="stylesheet" href="./chat/chat.css">
   <style>
-    .chat-container { min-height: 80vh; }
-    .sidebar { min-width: 250px; border-right: 1px solid #e5e7eb; }
+    body {
+      background: #ffffff;
+      min-height: 100vh;
+      margin: 0;
+      padding: 2rem;
+    }
   </style>
 </head>
 
-<body class="bg-gray-100 flex items-center justify-center p-4">
+<body class="flex items-center justify-center">
+  <div x-data="chatApp()" class="chat-container flex w-full max-w-5xl">
+    <!-- Контейнер для сайдбару--> 
+    <div id="sidebar-container"></div>
 
-<div x-data="chatApp()" class="chat-container bg-white rounded-lg shadow-lg flex w-full max-w-5xl">
-
-  <!-- Сайдбар -->
-  <div id="sidebar-container"></div>
-
-  <!-- Основна зона -->
-  <div class="chat-area p-4 flex flex-col w-full">
-
-    <!-- Логін -->
-    <div id="login-container" x-show="!accessToken"></div>
-
-    <!-- Чат -->
-    <div id="chat-container" x-show="accessToken"></div>
-
-    <div x-show="accessToken" class="flex-1 flex flex-col justify-center items-center text-gray-500">
-      <p>Оберіть кімнату для початку спілкування</p>
+    <!-- Контейнер для основної області чату -->
+    <div class="chat-area p-4 flex flex-col w-full">
+      <!-- Контейнер для логіну -->
+      <div id="login-container"></div>
+      
+      <!-- Контейнер для чату -->
+      <div id="chat-component-container"></div>
     </div>
-
   </div>
-</div>
 
+  <script>
+    // Завантаження HTML-шаблонів після завантаження DOM
+    document.addEventListener('DOMContentLoaded', () => {
+      // Завантаження login.html
+      fetch('./login/login.html')
+        .then(response => response.text())
+        .then(html => {
+          document.getElementById('login-container').innerHTML = html;
+        })
+        .catch(error => console.error('Error loading login:', error));
 
-<script>
-document.addEventListener("DOMContentLoaded", () => {
+      // Завантаження sidebar.html
+      fetch('./sidebar/sidebar.html')
+        .then(response => response.text())
+        .then(html => {
+          document.getElementById('sidebar-container').innerHTML = html;
+        })
+        .catch(error => console.error('Error loading sidebar:', error));
 
-  // login.html
-  fetch('./login/login.html')
-    .then(r => r.text())
-    .then(html => {
-      document.getElementById("login-container").innerHTML = html;
-    })
-    .catch(e => console.error("Error loading login:", e));
+      // Завантаження chat.html
+      fetch('./chat/chat.html')
+        .then(response => response.text())
+        .then(html => {
+          document.getElementById('chat-component-container').innerHTML = html;
+        })
+        .catch(error => console.error('Error loading chat:', error));
+    });
+  </script>
 
-  // sidebar.html
-  fetch('./sidebar/sidebar.html')
-    .then(r => r.text())
-    .then(html => {
-      document.getElementById("sidebar-container").innerHTML = html;
-      Alpine.initTree(document.getElementById("sidebar-container"));
-    })
-    .catch(e => console.error("Error loading sidebar:", e));
-
-  // chat.html
-  fetch('./chat/chat.html')
-    .then(r => r.text())
-    .then(html => {
-      document.getElementById("chat-container").innerHTML = html;
-      Alpine.initTree(document.getElementById("chat-container"));
-    })
-    .catch(e => console.error("Error loading chat:", e));
-
-});
-</script>
-
-
-<script>
-function chatApp() {
-  return {
-    username: '',
-    password: '',
-    accessToken: '',
-    userId: '',
-    roomId: '',
-    newRoomName: '',
-    inviteUser: '',
-    rooms: [],
-    messages: [],
-    lastSyncToken: '',
-
-    // Методи з твоїх JS-файлів
-    login,
-    createRoom,
-    fetchRoomsWithNames,
-    fetchMessages,
-    inviteUserToRoom,
-    switchRoom,
-    sendMessage,
-    getRoomName,
-    joinRoom,
-  };
-}
-</script>
-
+  <script>
+    function chatApp() {
+      return {
+        username: '',
+        password: '',
+        accessToken: '',
+        userId: '',
+        roomId: '',
+        joinRoomId: '',
+        newRoomName: '',
+        newRoomId: '',
+        rooms: [],
+        messages: [],
+        newMessage: '',
+        inviteUser: '',
+        error: '',
+        lastSyncToken: '',
+        login,
+        createRoom,
+        fetchRoomsWithNames,
+        joinRoom,
+        inviteUserToRoom,
+        getRoomName,
+        switchRoom,
+        sendMessage,
+        fetchMessages
+      }
+    }
+  </script>
 </body>
 </html>

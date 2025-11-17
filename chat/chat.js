@@ -31,16 +31,12 @@ async function fetchMessages() {
     const url = this.lastSyncToken ?
       `https://matrix.org/_matrix/client/r0/sync?since=${this.lastSyncToken}&timeout=30000` :
       `https://matrix.org/_matrix/client/r0/sync?timeout=30000`;
-
     const res = await fetch(url, {
       headers: { 'Authorization': `Bearer ${this.accessToken}` }
     });
-
     const data = await res.json();
-
     if (data.next_batch) {
       this.lastSyncToken = data.next_batch;
-
       if (data.rooms?.join?.[this.roomId]) {
         const roomData = data.rooms.join[this.roomId];
         roomData.timeline?.events?.forEach(event => {
@@ -53,19 +49,15 @@ async function fetchMessages() {
           }
         });
       }
-
       if (data.rooms?.invite) {
         for (const [room] of Object.entries(data.rooms.invite)) {
           await this.joinRoom(room);
         }
       }
-
       await this.fetchRoomsWithNames();
-
     } else {
       console.warn('No next_batch in sync response:', data);
     }
-
   } catch (e) {
     console.error('Fetch messages error:', e);
   }
