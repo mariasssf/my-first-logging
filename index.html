@@ -9,7 +9,6 @@
   <script src="./sidebar/sidebar.js"></script>
   <script src="./chat/chat.js"></script>
   <script src="./user/user.js"></script>
-  <link rel="stylesheet" href="./sidebar/sidebar.css">
   <link rel="stylesheet" href="./login/login.css">
   <link rel="stylesheet" href="./chat/chat.css">
   <link rel="stylesheet" href="index.css">
@@ -97,7 +96,9 @@
         switchRoom,
         sendMessage,
         fetchMessages,
-        fetchRoomMembers
+        fetchRoomMembers,
+        leaveRoom,  // ← Додано
+        kickUser    // ← Додано
       }
     }
 
@@ -112,7 +113,6 @@
           }
         );
         const data = await res.json();
-        // data.joined — об'єкт { "@user:matrix.org": { display_name: "...", avatar_url: "..." } }
         this.roomMembers = Object.entries(data.joined || {}).map(([userId, info]) => ({
           userId,
           displayName: info.display_name || userId.split(':')[0].substring(1),
@@ -130,7 +130,7 @@
       this.lastSyncToken = '';
 
       await this.fetchMessages();
-      await this.fetchRoomMembers(); // ← Завантажуємо учасників
+      await this.fetchRoomMembers();
     }
   </script>
 </body>
