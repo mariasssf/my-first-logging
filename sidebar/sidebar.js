@@ -1,128 +1,129 @@
+// sidebar.js - Функції для роботи з кімнатами
+
+// Функція для створення нової кімнати
 async function createRoom() {
-    if (!this.newRoomName.trim()) return;
-    try {
-        const res = await fetch('https://matrix.org/_matrix/client/r0/createRoom', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.accessToken}`
-            },
-            body: JSON.stringify({ preset: 'private_chat', name: this.newRoomName.trim(), invite: this.inviteUser ? [this.inviteUser.trim()] : [] })
-        });
-        const data = await res.json();
-        if (data.room_id) {
-            this.newRoomId = data.room_id;
-            this.roomId = data.room_id;
-            this.messages = [];
-            this.lastSyncToken = '';
-            await this.fetchRoomsWithNames();
-            this.fetchMessages();
-            this.inviteUser = '';
-            alert(`Room ${this.newRoomName} created with ID: ${this.newRoomId}`);
-        } else {
-            console.error('Create room failed:', data);
-            alert('Create room failed: ' + (data.error || 'Unknown error'));
-        }
-    } catch (e) {
-        console.error('Create room error:', e);
-        alert('Create room error: ' + e.message);
-    }
-}
-
-async function fetchRoomsWithNames() {
-    if (!this.accessToken) return;
-    try {
-        const res = await fetch('https://matrix.org/_matrix/client/r0/joined_rooms', {
-            headers: { 'Authorization': `Bearer ${this.accessToken}` }
-        });
-        const data = await res.json();
-        if (data.joined_rooms) {
-            const roomPromises = data.joined_rooms.map(async (roomId) => {
-                const nameRes = await fetch(`https://matrix.org/_matrix/client/r0/rooms/${encodeURIComponent(roomId)}/state/m.room.name`, {
-                    headers: { 'Authorization': `Bearer ${this.accessToken}` }
-                });
-                const nameData = await nameRes.json();
-                return {
-                    roomId,
-                    name: nameData?.name || this.getRoomName(roomId) || roomId
-                };
-            });
-            this.rooms = (await Promise.all(roomPromises))
-                .sort((a, b) => a.roomId.localeCompare(b.roomId));
-            if (this.rooms.length > 0 && !this.roomId) {
-                this.roomId = this.rooms[0].roomId;
-                this.fetchMessages();
-            }
-        }
-    } catch (e) {
-        console.error('Fetch rooms error:', e);
-    }
-}
-
-function getRoomName(roomId) {
-    return this.rooms.find(r => r.roomId === roomId)?.name || roomId;
-}
-
-function switchRoom(roomId) {
-    if (roomId) this.roomId = roomId;
-    this.messages = [];
-    this.lastSyncToken = '';
-    this.fetchMessages();
-}
-
-async function inviteUserToRoom() {
-    if (!this.inviteUser.trim() || !this.roomId) {
-        console.warn('No inviteUser or roomId');
+    if (!this.accessToken || !this.newRoomName) {
+        this.error = "Please provide a room name";
         return;
     }
-    const userToInvite = this.inviteUser.trim(); // Зберігаємо перед очищенням
+    
     try {
-        const res = await fetch(`https://matrix.org/_matrix/client/r0/rooms/${this.roomId}/invite`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${this.accessToken}`
-            },
-            body: JSON.stringify({ user_id: userToInvite })
-        });
-        const data = await res.json();
-        if (data.errcode) {
-            console.error('Invite failed:', data);
-            alert('Invite failed: ' + (data.error || 'Unknown error'));
-        } else {
-            this.inviteUser = '';
-            alert(`${userToInvite} invited to ${this.roomId}`);
+        const res = await fetch(
+            'https://matrix.org/_matrix/client/r0/createRoom',
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${this.accessToken}`
+                },
+                body: JSON.stringify({
+                    name: this.newRoomName,
+                    preset: 'private_chat',
+                    visibility: 'private'
+                })
+            }
+        );
+        
+        if (res.ok) {
+            const data = await res.json();
+            this.newRoomId = data.room_id;
+            console.log('Room created:', this.newRoomId);
+            this.newRoomName = ''; // Очистити поле
+            
+            // Оновити список кімнат
             await this.fetchRoomsWithNames();
+        } else {
+            const errorData = await res.json();
+            this.error = `Failed to create room: ${errorData.error || 'Unknown error'}`;
         }
     } catch (e) {
-        console.error('Invite error:', e);
-        alert('Invite error: ' + e.message);
+        console.error('Error creating room:', e);
+        this.error = 'Error creating room';
     }
 }
 
-async function joinRoom() {
-    if (!this.joinRoomId.trim()) return;
+// Функція для отримання списку кімнат з назвами
+async function fetchRoomsWithNames() {
+    if (!this.accessToken) return;
+    
     try {
-        const res = await fetch(`https://matrix.org/_matrix/client/r0/join/${encodeURIComponent(this.joinRoomId.trim())}`, {
-            method: 'POST',
-            headers: {
-                'Authorization': `Bearer ${this.accessToken}`
+        // Отримати список кімнат
+        const res = await fetch(
+            'https://matrix.org/_matrix/client/r0/joined_rooms',
+            {
+                headers: { 'Authorization': `Bearer ${this.accessToken}` }
             }
-        });
-        const data = await res.json();
-        if (data.room_id) {
-            this.roomId = this.joinRoomId.trim();
-            this.joinRoomId = '';
-            this.messages = [];
-            this.lastSyncToken = '';
-            await this.fetchRoomsWithNames();
-            this.fetchMessages();
-        } else {
-            console.error('Join failed:', data);
-            alert('Join failed: ' + (data.error || 'Unknown error'));
+        );
+        
+        if (res.ok) {
+            const data = await res.json();
+            const roomIds = data.joined_rooms || [];
+            
+            // Для кожної кімнати отримати деталі (назву)
+            const roomsWithNames = await Promise.all(
+                roomIds.map(async (roomId) => {
+                    try {
+                        const roomRes = await fetch(
+                            `https://matrix.org/_matrix/client/r0/rooms/${encodeURIComponent(roomId)}/state/m.room.name`,
+                            {
+                                headers: { 'Authorization': `Bearer ${this.accessToken}` }
+                            }
+                        );
+                        
+                        if (roomRes.ok) {
+                            const roomData = await roomRes.json();
+                            return {
+                                roomId: roomId,
+                                name: roomData.name || roomId
+                            };
+                        } else {
+                            return {
+                                roomId: roomId,
+                                name: roomId
+                            };
+                        }
+                    } catch (e) {
+                        console.error(`Error fetching name for room ${roomId}:`, e);
+                        return {
+                            roomId: roomId,
+                            name: roomId
+                        };
+                    }
+                })
+            );
+            
+            this.rooms = roomsWithNames;
+            
+            // Автоматично вибрати першу кімнату, якщо немає вибраної
+            if (roomsWithNames.length > 0 && !this.roomId) {
+                this.roomId = roomsWithNames[0].roomId;
+                this.switchRoom(this.roomId);
+            }
         }
     } catch (e) {
-        console.error('Join room error:', e);
-        alert('Join room error: ' + e.message);
+        console.error('Error fetching rooms:', e);
+    }
+}
+
+// Функція для отримання назви кімнати
+async function getRoomName(roomId) {
+    if (!this.accessToken) return roomId;
+    
+    try {
+        const res = await fetch(
+            `https://matrix.org/_matrix/client/r0/rooms/${encodeURIComponent(roomId)}/state/m.room.name`,
+            {
+                headers: { 'Authorization': `Bearer ${this.accessToken}` }
+            }
+        );
+        
+        if (res.ok) {
+            const data = await res.json();
+            return data.name || roomId;
+        }
+        return roomId;
+    } catch (e) {
+        console.error('Error getting room name:', e);
+        return roomId;
     }
 }

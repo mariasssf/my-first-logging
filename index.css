@@ -1,19 +1,47 @@
-html, body {
-    height: 100%;
-    margin: 0;
-}
+/* index.css - Основні стилі для додатка */
 
 .index-container {
     height: 100vh;
-    display: flex;
-    justify-content: center; /* горизонтальне вирівнювання */
-    align-items: center;     /* вертикальне вирівнювання */
-    background-color: #f3f4f6; /* bg-gray-100 */
+    margin: 0;
+    padding: 0;
 }
 
-/* Стилі для сайдбару і чату залишаються */
 .sidebar {
-    min-width: 250px;
+    width: 260px;
+    background: #ffffff;
+    padding: 20px;
+    border-right: 1px solid #ddd;
+}
+
+.sidebar h2 {
+    margin-top: 0;
+    font-size: 22px;
+}
+
+.sidebar ul {
+    list-style: none;
+    padding: 0;
+}
+
+.sidebar li {
+    padding: 10px;
+    margin-bottom: 5px;
+    cursor: pointer;
+    border-radius: 6px;
+}
+
+.sidebar li:hover {
+    background: #f0f0f0;
+}
+
+.sidebar li.active {
+    background: #dce9ff;
+    border-left: 4px solid #4287f5;
+}
+
+.sidebar-list {
+    height: 76vh;
+    overflow-y: scroll;
 }
 
 .chat-area {
@@ -36,4 +64,12 @@ html, body {
 .room-list li.active {
     background-color: #bfdbfe;
     font-weight: 500;
+}
+
+/* Стилі для форми логіну */
+#login-container {
+    width: 400px;
+    margin: 0 auto;
+    background: #fff;
+    padding: 20px;
 }

@@ -8,23 +8,20 @@
   <script src="./login/login.js"></script>
   <script src="./sidebar/sidebar.js"></script>
   <script src="./chat/chat.js"></script>
+  <script src="./user/user.js"></script>
   <link rel="stylesheet" href="./sidebar/sidebar.css">
   <link rel="stylesheet" href="./login/login.css">
   <link rel="stylesheet" href="./chat/chat.css">
-  <style>
-    body {
-      background: #ffffff;
-      min-height: 100vh;
-      margin: 0;
-      padding: 2rem;
-    }
-  </style>
+  <link rel="stylesheet" href="index.css">
 </head>
 
-<body class="flex items-center justify-center">
-  <div x-data="chatApp()" class="chat-container flex w-full max-w-5xl">
-    <!-- Контейнер для сайдбару--> 
+<body class="index-container bg-gray-100 flex justify-center">
+  <div x-data="chatApp()" class="flex w-full">
+    <!-- Контейнер для сайдбару з кімнатами -->
     <div id="sidebar-container"></div>
+    
+    <!-- Контейнер для сайдбару з користувачами -->
+    <div id="user-container"></div>
 
     <!-- Контейнер для основної області чату -->
     <div class="chat-area p-4 flex flex-col w-full">
@@ -55,6 +52,14 @@
         })
         .catch(error => console.error('Error loading sidebar:', error));
 
+      // Завантаження user.html
+      fetch('./user/user.html')
+        .then(response => response.text())
+        .then(html => {
+          document.getElementById('user-container').innerHTML = html;
+        })
+        .catch(error => console.error('Error loading user:', error));
+
       // Завантаження chat.html
       fetch('./chat/chat.html')
         .then(response => response.text())
@@ -82,6 +87,7 @@
         inviteUser: '',
         error: '',
         lastSyncToken: '',
+        roomMembers: [],
         login,
         createRoom,
         fetchRoomsWithNames,
@@ -90,8 +96,41 @@
         getRoomName,
         switchRoom,
         sendMessage,
-        fetchMessages
+        fetchMessages,
+        fetchRoomMembers
       }
+    }
+
+    // Функція для отримання учасників кімнати
+    async function fetchRoomMembers() {
+      if (!this.accessToken || !this.roomId) return;
+      try {
+        const res = await fetch(
+          `https://matrix.org/_matrix/client/r0/rooms/${encodeURIComponent(this.roomId)}/joined_members`,
+          {
+            headers: { 'Authorization': `Bearer ${this.accessToken}` }
+          }
+        );
+        const data = await res.json();
+        // data.joined — об'єкт { "@user:matrix.org": { display_name: "...", avatar_url: "..." } }
+        this.roomMembers = Object.entries(data.joined || {}).map(([userId, info]) => ({
+          userId,
+          displayName: info.display_name || userId.split(':')[0].substring(1),
+          avatarUrl: info.avatar_url
+        }));
+      } catch (e) {
+        console.error('Error fetching room members:', e);
+      }
+    }
+
+    // Оновлена функція switchRoom
+    async function switchRoom(roomId) {
+      if (roomId) this.roomId = roomId;
+      this.messages = [];
+      this.lastSyncToken = '';
+
+      await this.fetchMessages();
+      await this.fetchRoomMembers(); // ← Завантажуємо учасників
     }
   </script>
 </body>
