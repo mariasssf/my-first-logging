@@ -35,6 +35,11 @@
   <script>
     // Завантаження HTML-шаблонів після завантаження DOM
     document.addEventListener('DOMContentLoaded', () => {
+      // Запитуємо дозвіл на сповіщення
+      if (Notification.permission === 'default') {
+        Notification.requestPermission();
+      }
+
       // Завантаження login.html
       fetch('./login/login.html')
         .then(response => response.text())
@@ -87,6 +92,8 @@
         error: '',
         lastSyncToken: '',
         roomMembers: [],
+        editMode: null,     // ← Додано для редагування
+        editText: '',       // ← Додано для редагування
         login,
         createRoom,
         fetchRoomsWithNames,
@@ -97,8 +104,14 @@
         sendMessage,
         fetchMessages,
         fetchRoomMembers,
-        leaveRoom,  // ← Додано
-        kickUser    // ← Додано
+        leaveRoom,
+        kickUser,
+        startEdit,           // ← Додано
+        cancelEdit,          // ← Додано
+        saveEdit,            // ← Додано
+        deleteMessage,       // ← Додано
+        playNotificationSound, // ← Додано
+        showDesktopNotification // ← Додано
       }
     }
 
@@ -128,6 +141,7 @@
       if (roomId) this.roomId = roomId;
       this.messages = [];
       this.lastSyncToken = '';
+      this.editMode = null; // Скидаємо режим редагування
 
       await this.fetchMessages();
       await this.fetchRoomMembers();
